@@ -61,60 +61,69 @@ function execute(url) {
     url = normalizeUrl(url);
     var ua = (typeof USER_AGENT !== 'undefined' && USER_AGENT) ? USER_AGENT : "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36";
     
-    var cookie = "";
-    if (typeof getCookie === 'function') {
-        cookie = getCookie();
-    }
-
+    var cookieHeader = getCookie();
     var headers = {
         'User-Agent': ua,
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
     };
-    if (cookie) {
-        headers['Cookie'] = cookie;
+    if (cookieHeader) {
+        headers['Cookie'] = cookieHeader;
     }
 
     var res = fetch(url, { headers: headers });
+    var rawSetCookie = "";
+    if (res) {
+        try {
+            rawSetCookie = res.header("set-cookie") || res.header("Set-Cookie") || (res.headers && (res.headers["set-cookie"] || res.headers["Set-Cookie"])) || "";
+            if (Array.isArray(rawSetCookie)) {
+                rawSetCookie = rawSetCookie.join(", ");
+            }
+            if (rawSetCookie) {
+                saveCookie(rawSetCookie);
+            }
+        } catch (e) {}
+    }
+
+    var combinedCookie = getCombinedCookieHeader(rawSetCookie);
+    var apiRes = null;
 
     // 1. Fast path: If fetch is OK, try static HTML and XOR decryption
     if (res && res.ok) {
-        try {
-            var sc = res.header("set-cookie") || (res.headers && res.headers["set-cookie"]);
-            if (sc && typeof saveCookie === 'function') {
-                saveCookie(sc);
-            }
-        } catch (e) {}
-
         var text = res.text();
         var doc = res.html();
 
+        var csrfToken = "";
+        var csrfMeta = text.match(/<meta[^>]*name="csrf-token"[^>]*content="([^"]+)"/i);
+        if (csrfMeta && csrfMeta[1]) {
+            csrfToken = csrfMeta[1];
+        } else {
+            var csrfScript = text.match(/csrfToken\s*=\s*csrfMeta\s*\?\s*csrfMeta\.content\s*:\s*"([^"]+)"/i);
+            if (csrfScript && csrfScript[1]) {
+                csrfToken = csrfScript[1];
+            }
+        }
+
         var urlMatch = text.match(/contentUrl\s*=\s*"([^"]+)"/);
         var tokenMatch = text.match(/contentToken\s*=\s*"([^"]+)"/);
-        var csrfMatch = text.match(/<meta[^>]*name="csrf-token"[^>]*content="([^"]+)"/);
 
         if (urlMatch && tokenMatch) {
             var rawContentUrl = urlMatch[1].replace(/\\/g, '');
             var fullContentUrl = BASE_URL + rawContentUrl;
             
-            var apiCookie = (typeof getCookie === 'function') ? getCookie() : "";
-            if (!apiCookie && cookie) {
-                apiCookie = cookie;
-            }
-
             var apiHeaders = {
                 'Accept': 'application/json, text/plain, */*',
                 'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': csrfMatch ? csrfMatch[1] : '',
+                'X-CSRF-TOKEN': csrfToken,
                 'X-Content-Token': tokenMatch[1],
                 'User-Agent': ua,
                 'Referer': url
             };
-            if (apiCookie) {
-                apiHeaders['Cookie'] = apiCookie;
+            if (combinedCookie) {
+                apiHeaders['Cookie'] = combinedCookie;
             }
 
-            var apiRes = fetch(fullContentUrl, { headers: apiHeaders });
-            if (apiRes.ok) {
+            apiRes = fetch(fullContentUrl, { headers: apiHeaders });
+            if (apiRes && apiRes.ok) {
                 var json = apiRes.json();
                 if (json && json.d && json.k) {
                     var decrypted = decryptContent(json.d, json.k);
@@ -125,30 +134,28 @@ function execute(url) {
             }
         }
 
-        var contentEl = doc.select("#content .chap").first();
-        if (!contentEl) {
-            contentEl = doc.select("#content, .reading-content, article").first();
-        }
+        var contentEl = doc.select("#ct-p, #content .chap, .reading-content, article").first();
         var cleanContent = extractCleanHtml(contentEl);
         if (cleanContent) {
             return Response.success(cleanContent);
         }
     }
 
-    // 2. Headless WebView Fallback: Bypasses Cloudflare 403 & uses in-app browser cookies
+    // 2. Headless WebView Fallback: Bypasses Cloudflare 403 & renders client-side AJAX
     try {
         if (typeof Engine !== "undefined" && typeof Engine.newBrowser === "function") {
             var browser = Engine.newBrowser();
             if (typeof UserAgent !== "undefined" && typeof UserAgent.android === "function") {
                 browser.setUserAgent(UserAgent.android());
             }
-            var bDoc = browser.launch(url, 6000);
+            browser.launch(url, 4000);
+            try {
+                browser.waitUrl(["doc/chuong", "chuong"], 6000);
+            } catch (eWait) {}
+            var bDoc = browser.html(1500);
             browser.close();
             if (bDoc) {
-                var bContent = bDoc.select("#content .chap").first();
-                if (!bContent) {
-                    bContent = bDoc.select("#content, .reading-content, article").first();
-                }
+                var bContent = bDoc.select("#ct-p, #content .chap, .reading-content").first();
                 var bClean = extractCleanHtml(bContent);
                 if (bClean) {
                     return Response.success(bClean);
@@ -157,5 +164,17 @@ function execute(url) {
         }
     } catch (e) {}
 
-    return Response.error("HTTP " + (res ? res.status : 403) + " - Vui lòng mở trình duyệt để xác thực hoặc thử lại!");
+    var errMsg = "HTTP " + (res ? res.status : 403) + " - Vui lòng mở trình duyệt trong app để đăng nhập hoặc thử lại!";
+    if (apiRes) {
+        try {
+            var jErr = apiRes.json();
+            if (jErr) {
+                if (jErr.reason) errMsg = jErr.reason;
+                else if (jErr.msg) errMsg = jErr.msg;
+                else if (jErr.error) errMsg = jErr.error;
+            }
+        } catch (e) {}
+    }
+
+    return Response.error(errMsg);
 }

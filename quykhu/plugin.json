@@ -2,7 +2,7 @@
   "metadata": {
     "name": "Quy Khư",
     "author": "vBook",
-    "version": 4,
+    "version": 5,
     "source": "https://quykhu.com",
     "regexp": "(www.)?quykhu.com/[^/]+/?$",
     "description": "Đọc truyện trên trang Quy Khư (quykhu.com)",
