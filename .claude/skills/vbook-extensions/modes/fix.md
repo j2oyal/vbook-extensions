@@ -48,6 +48,21 @@ A "silent" domain move is easy to miss: the old host still returns 200 because i
 4. Add `home`/`explore`/`genre` only if the site supports them and the user wants them.
 5. Move to Phase 3 for every script, not just the one that first failed.
 
+### Cookie swallowing & Batch download stuck (0/xx)
+
+When users report login-ok in browser but download stuck at 0/xx or HTTP 419 / 403:
+1. Android's `CookieManager.setCookie(url, val)` only accepts ONE cookie per call. If `res.header("set-cookie")` joins multiple cookies (`XSRF-TOKEN` + `session_cookie`), calling `localCookie.setCookie` directly drops the session cookie!
+2. Parse each cookie individually using `parseCookieMap()` and save them one by one.
+3. Batch download in vBook runs headlessly without WebView; chapter retrieval MUST succeed via `fetch()` + XOR/Crypto decryption rather than relying solely on `Engine.newBrowser()`.
+4. If using `Engine.newBrowser()` for interactive read, use `browser.waitUrl(["ajax_endpoint"], timeout)` to ensure client-side DOM injection completes before calling `browser.html()`.
+
+### Proper PKZIP packaging
+
+1. Entry #0 in the zip archive MUST be `plugin.json`.
+2. Entry #1 (if icon present) MUST be `icon.png`.
+3. General purpose bit flags MUST be `0` (do not use streaming/data descriptor flags, do not use `tar.exe` on Windows).
+4. Use the custom native zip packer (`scratch/build_vbook_zip.mjs`).
+
 ## Phase 3 — verify → fix → retest loop
 
 `code:0` alone is not a pass:
@@ -66,3 +81,4 @@ A "silent" domain move is easy to miss: the old host still returns 200 because i
 ## Done criteria
 
 The specific broken behavior passes `vbook.js test` with correctly-shaped, verified data. Every dependent script still passes. `version` bumped. No unrelated script touched.
+
