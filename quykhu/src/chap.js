@@ -46,6 +46,17 @@ function decryptContent(d, k) {
     return decodeUtf8(decryptedBytes);
 }
 
+function extractCleanHtml(el) {
+    if (!el) return "";
+    el.select("script, style, svg, .tts-exclude, .animate-spin, .chapter-source-chrome, button").remove();
+    var content = el.html().trim();
+    var cleanText = content.replace(/<[^>]+>/g, '').trim();
+    if (cleanText.length > 20) {
+        return content;
+    }
+    return "";
+}
+
 function execute(url) {
     url = normalizeUrl(url);
     var ua = (typeof USER_AGENT !== 'undefined' && USER_AGENT) ? USER_AGENT : "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36";
@@ -64,71 +75,87 @@ function execute(url) {
     }
 
     var res = fetch(url, { headers: headers });
-    if (!res.ok) return Response.error("HTTP " + res.status);
 
-    // Save any returned session cookie
-    try {
-        var sc = res.header("set-cookie") || (res.headers && res.headers["set-cookie"]);
-        if (sc && typeof saveCookie === 'function') {
-            saveCookie(sc);
-        }
-    } catch (e) {}
+    // 1. Fast path: If fetch is OK, try static HTML and XOR decryption
+    if (res && res.ok) {
+        try {
+            var sc = res.header("set-cookie") || (res.headers && res.headers["set-cookie"]);
+            if (sc && typeof saveCookie === 'function') {
+                saveCookie(sc);
+            }
+        } catch (e) {}
 
-    var text = res.text();
-    var doc = res.html();
+        var text = res.text();
+        var doc = res.html();
 
-    // 1. Check if chapter content is encrypted via Ajax
-    var urlMatch = text.match(/contentUrl\s*=\s*"([^"]+)"/);
-    var tokenMatch = text.match(/contentToken\s*=\s*"([^"]+)"/);
-    var csrfMatch = text.match(/<meta[^>]*name="csrf-token"[^>]*content="([^"]+)"/);
+        var urlMatch = text.match(/contentUrl\s*=\s*"([^"]+)"/);
+        var tokenMatch = text.match(/contentToken\s*=\s*"([^"]+)"/);
+        var csrfMatch = text.match(/<meta[^>]*name="csrf-token"[^>]*content="([^"]+)"/);
 
-    if (urlMatch && tokenMatch) {
-        var rawContentUrl = urlMatch[1].replace(/\\/g, '');
-        var fullContentUrl = BASE_URL + rawContentUrl;
-        
-        var apiCookie = (typeof getCookie === 'function') ? getCookie() : "";
-        if (!apiCookie && cookie) {
-            apiCookie = cookie;
-        }
+        if (urlMatch && tokenMatch) {
+            var rawContentUrl = urlMatch[1].replace(/\\/g, '');
+            var fullContentUrl = BASE_URL + rawContentUrl;
+            
+            var apiCookie = (typeof getCookie === 'function') ? getCookie() : "";
+            if (!apiCookie && cookie) {
+                apiCookie = cookie;
+            }
 
-        var apiHeaders = {
-            'Accept': 'application/json, text/plain, */*',
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRF-TOKEN': csrfMatch ? csrfMatch[1] : '',
-            'X-Content-Token': tokenMatch[1],
-            'User-Agent': ua,
-            'Referer': url
-        };
-        if (apiCookie) {
-            apiHeaders['Cookie'] = apiCookie;
-        }
+            var apiHeaders = {
+                'Accept': 'application/json, text/plain, */*',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfMatch ? csrfMatch[1] : '',
+                'X-Content-Token': tokenMatch[1],
+                'User-Agent': ua,
+                'Referer': url
+            };
+            if (apiCookie) {
+                apiHeaders['Cookie'] = apiCookie;
+            }
 
-        var apiRes = fetch(fullContentUrl, { headers: apiHeaders });
-        if (apiRes.ok) {
-            var json = apiRes.json();
-            if (json && json.d && json.k) {
-                var decrypted = decryptContent(json.d, json.k);
-                if (decrypted && decrypted.length > 20) {
-                    return Response.success(decrypted);
+            var apiRes = fetch(fullContentUrl, { headers: apiHeaders });
+            if (apiRes.ok) {
+                var json = apiRes.json();
+                if (json && json.d && json.k) {
+                    var decrypted = decryptContent(json.d, json.k);
+                    if (decrypted && decrypted.length > 20) {
+                        return Response.success(decrypted);
+                    }
                 }
             }
         }
-    }
 
-    // 2. Fallback to static HTML (for chapters rendered statically)
-    var contentEl = doc.select("#content .chap").first();
-    if (!contentEl) {
-        contentEl = doc.select("#content, .reading-content, article").first();
-    }
-
-    if (contentEl) {
-        contentEl.select("script, style, svg, .tts-exclude, .animate-spin, .chapter-source-chrome, button").remove();
-        var content = contentEl.html().trim();
-        var cleanText = content.replace(/<[^>]+>/g, '').trim();
-        if (cleanText.length > 20) {
-            return Response.success(content);
+        var contentEl = doc.select("#content .chap").first();
+        if (!contentEl) {
+            contentEl = doc.select("#content, .reading-content, article").first();
+        }
+        var cleanContent = extractCleanHtml(contentEl);
+        if (cleanContent) {
+            return Response.success(cleanContent);
         }
     }
 
-    return Response.error("Không thể tải nội dung chương, vui lòng thử lại!");
+    // 2. Headless WebView Fallback: Bypasses Cloudflare 403 & uses in-app browser cookies
+    try {
+        if (typeof Engine !== "undefined" && typeof Engine.newBrowser === "function") {
+            var browser = Engine.newBrowser();
+            if (typeof UserAgent !== "undefined" && typeof UserAgent.android === "function") {
+                browser.setUserAgent(UserAgent.android());
+            }
+            var bDoc = browser.launch(url, 6000);
+            browser.close();
+            if (bDoc) {
+                var bContent = bDoc.select("#content .chap").first();
+                if (!bContent) {
+                    bContent = bDoc.select("#content, .reading-content, article").first();
+                }
+                var bClean = extractCleanHtml(bContent);
+                if (bClean) {
+                    return Response.success(bClean);
+                }
+            }
+        }
+    } catch (e) {}
+
+    return Response.error("HTTP " + (res ? res.status : 403) + " - Vui lòng mở trình duyệt để xác thực hoặc thử lại!");
 }

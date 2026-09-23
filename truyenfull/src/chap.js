@@ -27,6 +27,19 @@ function cleanHtml(htm) {
     return text;
 }
 
+function extractChapterContent(doc) {
+    if (!doc) return "";
+    doc.select("noscript, script, iframe, div.ads-responsive, [style=font-size.0px;], a").remove();
+    var rawTxt = doc.select("div.chapter-c").html();
+    if (!rawTxt) {
+        var el = doc.select("#chapter-c, .reading-content, #content").first();
+        if (el) rawTxt = el.html();
+    }
+    if (!rawTxt) return "";
+    rawTxt = rawTxt.replace(/<em>.*?Chương này có nội dung ảnh.*?<\/em>/gi, '');
+    return cleanHtml(rawTxt);
+}
+
 function execute(url) {
     url = url.replace(/^(?:https?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^:\/\n?]+)/img, BASE_URL);
     var ua = (typeof USER_AGENT !== 'undefined' && USER_AGENT) ? USER_AGENT : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
@@ -43,27 +56,36 @@ function execute(url) {
         response = fetch(url, { headers: headers });
     }
 
-    if (response.ok) {
+    if (response && response.ok) {
         try {
             var sc = response.header("set-cookie") || (response.headers && response.headers["set-cookie"]);
             if (sc && typeof saveCookie === 'function') saveCookie(sc);
         } catch (e) {}
 
         var doc = response.html();
-        // loại bỏ các phần tử rác
-        doc.select("noscript").remove();
-        doc.select("script").remove();
-        doc.select("iframe").remove();
-        doc.select("div.ads-responsive").remove();
-        doc.select("[style=font-size.0px;]").remove();
-        doc.select("a").remove();
-        // lấy nội dung chương
-        var rawTxt = doc.select("div.chapter-c").html();
-        // xóa phần chú thích "chương có ảnh"
-        rawTxt = rawTxt.replace(/<em>.*?Chương này có nội dung ảnh.*?<\/em>/gi, '');
-        // làm sạch HTML
-        var cleanedTxt = cleanHtml(rawTxt);
-        return Response.success(cleanedTxt);
+        var content = extractChapterContent(doc);
+        if (content && content.length > 20) {
+            return Response.success(content);
+        }
     }
-    return Response.error("HTTP " + response.status + " - Vui lòng mở trình duyệt để xác thực hoặc thử lại!");
+
+    // Headless WebView Fallback (for Cloudflare challenges or protected chapters)
+    try {
+        if (typeof Engine !== "undefined" && typeof Engine.newBrowser === "function") {
+            var browser = Engine.newBrowser();
+            if (typeof UserAgent !== "undefined" && typeof UserAgent.android === "function") {
+                browser.setUserAgent(UserAgent.android());
+            }
+            var bDoc = browser.launch(url, 6000);
+            browser.close();
+            if (bDoc) {
+                var bContent = extractChapterContent(bDoc);
+                if (bContent && bContent.length > 20) {
+                    return Response.success(bContent);
+                }
+            }
+        }
+    } catch (e) {}
+
+    return Response.error("HTTP " + (response ? response.status : 403) + " - Vui lòng mở trình duyệt để xác thực hoặc thử lại!");
 }

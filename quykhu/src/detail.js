@@ -9,16 +9,36 @@ function execute(url) {
     };
     if (cookie) headers['Cookie'] = cookie;
 
+    var doc = null;
+    var text = "";
+
     var response = fetch(url, { headers: headers });
-    if (!response.ok) return Response.error("HTTP " + response.status);
+    if (response && response.ok) {
+        try {
+            var sc = response.header("set-cookie") || (response.headers && response.headers["set-cookie"]);
+            if (sc && typeof saveCookie === 'function') saveCookie(sc);
+        } catch (e) {}
 
-    try {
-        var sc = response.header("set-cookie") || (response.headers && response.headers["set-cookie"]);
-        if (sc && typeof saveCookie === 'function') saveCookie(sc);
-    } catch (e) {}
+        doc = response.html();
+        text = response.text();
+    } else {
+        // Fallback to Headless WebView if 403 or blocked
+        try {
+            if (typeof Engine !== "undefined" && typeof Engine.newBrowser === "function") {
+                var browser = Engine.newBrowser();
+                if (typeof UserAgent !== "undefined" && typeof UserAgent.android === "function") {
+                    browser.setUserAgent(UserAgent.android());
+                }
+                doc = browser.launch(url, 6000);
+                browser.close();
+                if (doc) text = doc.html();
+            }
+        } catch (e) {}
+    }
 
-    var doc = response.html();
-    var text = response.text();
+    if (!doc) {
+        return Response.error("HTTP " + (response ? response.status : 403) + " - Vui lòng mở trình duyệt để xác thực hoặc thử lại!");
+    }
 
     var name = doc.select("h1").first();
     var bookName = name ? name.text().trim() : "";
