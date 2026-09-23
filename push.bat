@@ -19,9 +19,8 @@ echo.
 set "msg="
 set /p msg="Nhap commit message (nhan Enter de lay mac dinh): "
 
-if "%msg%"=="" (
-    set "msg=Update extensions: NetTruyen, HHTQ Vietsub"
-)
+if "%msg%"=="" set "msg=Update vBook extensions: %DATE% %TIME%"
+if "%msg%"==" " set "msg=Update vBook extensions: %DATE% %TIME%"
 
 echo.
 echo [2/4] Dang add cac file (git add)...
