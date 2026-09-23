@@ -2,12 +2,13 @@
   "metadata": {
     "name": "Quy Khư",
     "author": "vBook",
-    "version": 1,
+    "version": 2,
     "source": "https://quykhu.com",
-    "regexp": "(?:https?://)?(?:www\\.)?quykhu\\.com/.*",
+    "regexp": "(www.)?quykhu.com/[^/]+/?$",
     "description": "Đọc truyện trên trang Quy Khư (quykhu.com)",
     "locale": "vi_VN",
-    "type": "novel"
+    "type": "novel",
+    "language": "javascript"
   },
   "script": {
     "home": "home.js",

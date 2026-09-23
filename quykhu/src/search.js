@@ -4,7 +4,7 @@ function execute(key, page) {
     let url = BASE_URL + "/search?keyword=" + encodeURIComponent(key) + "&page=" + page;
     let response = fetch(url, {
         headers: {
-            'User-Agent': UserAgent.chrome()
+            'User-Agent': USER_AGENT
         }
     });
     if (!response.ok) return Response.error("HTTP " + response.status);
@@ -24,7 +24,7 @@ function execute(key, page) {
             if (name && link) {
                 items.push({
                     name: name,
-                    link: link,
+                    link: normalizeUrl(link),
                     cover: cover,
                     description: desc,
                     host: BASE_URL

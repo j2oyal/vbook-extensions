@@ -1,7 +1,7 @@
 load('config.js');
 function execute(url, page) {
     page = page || "1";
-    let fetchUrl = BASE_URL + url;
+    let fetchUrl = normalizeUrl(url);
     if (fetchUrl.indexOf('?') === -1) {
         fetchUrl += "?page=" + page;
     } else {
@@ -10,7 +10,7 @@ function execute(url, page) {
 
     let response = fetch(fetchUrl, {
         headers: {
-            'User-Agent': UserAgent.chrome()
+            'User-Agent': USER_AGENT
         }
     });
     if (!response.ok) return Response.error("HTTP " + response.status);
@@ -30,7 +30,7 @@ function execute(url, page) {
             if (name && link) {
                 items.push({
                     name: name,
-                    link: link,
+                    link: normalizeUrl(link),
                     cover: cover,
                     description: desc,
                     host: BASE_URL

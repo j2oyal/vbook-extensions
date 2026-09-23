@@ -7,10 +7,10 @@
     {
       "name": "HHTQ Vietsub",
       "author": "vBook",
-      "path": "https://raw.githubusercontent.com/Darkrai9x/vbook-extensions/refs/heads/master/hhtqvietsub/plugin.zip",
+      "path": "https://raw.githubusercontent.com/j2oyal/vbook-extensions/refs/heads/master/hhtqvietsub/plugin.zip",
       "version": 10,
       "source": "https://hhtqvietsub.art",
-      "icon": "https://raw.githubusercontent.com/Darkrai9x/vbook-extensions/refs/heads/master/hhtqvietsub/icon.png",
+      "icon": "https://raw.githubusercontent.com/j2oyal/vbook-extensions/refs/heads/master/hhtqvietsub/icon.png",
       "description": "Xem phim hoạt hình Trung Quốc trên HHTQ Vietsub",
       "locale": "vi_VN",
       "type": "video"
@@ -18,10 +18,10 @@
     {
       "name": "YanHH3D",
       "author": "vBook",
-      "path": "https://raw.githubusercontent.com/Darkrai9x/vbook-extensions/refs/heads/master/yanhh3d/plugin.zip",
+      "path": "https://raw.githubusercontent.com/j2oyal/vbook-extensions/refs/heads/master/yanhh3d/plugin.zip",
       "version": 1,
       "source": "https://yanhh3d.ee",
-      "icon": "https://raw.githubusercontent.com/Darkrai9x/vbook-extensions/refs/heads/master/yanhh3d/icon.png",
+      "icon": "https://raw.githubusercontent.com/j2oyal/vbook-extensions/refs/heads/master/yanhh3d/icon.png",
       "description": "Xem hoạt hình Trung Quốc (donghua) trên YanHH3D",
       "locale": "vi_VN",
       "type": "video"
@@ -29,10 +29,10 @@
     {
       "name": "Motchill",
       "author": "vBook",
-      "path": "https://raw.githubusercontent.com/Darkrai9x/vbook-extensions/refs/heads/master/motchill/plugin.zip",
+      "path": "https://raw.githubusercontent.com/j2oyal/vbook-extensions/refs/heads/master/motchill/plugin.zip",
       "version": 1,
       "source": "https://motchille.tv",
-      "icon": "https://raw.githubusercontent.com/Darkrai9x/vbook-extensions/refs/heads/master/motchill/icon.png",
+      "icon": "https://raw.githubusercontent.com/j2oyal/vbook-extensions/refs/heads/master/motchill/icon.png",
       "description": "Xem phim Vietsub, thuyết minh trên Motchill",
       "locale": "vi_VN",
       "type": "video"
@@ -40,10 +40,10 @@
     {
       "name": "VieFlix",
       "author": "vBook",
-      "path": "https://raw.githubusercontent.com/Darkrai9x/vbook-extensions/refs/heads/master/vieflix/plugin.zip",
+      "path": "https://raw.githubusercontent.com/j2oyal/vbook-extensions/refs/heads/master/vieflix/plugin.zip",
       "version": 1,
       "source": "https://vieflix.top",
-      "icon": "https://raw.githubusercontent.com/Darkrai9x/vbook-extensions/refs/heads/master/vieflix/icon.png",
+      "icon": "https://raw.githubusercontent.com/j2oyal/vbook-extensions/refs/heads/master/vieflix/icon.png",
       "description": "Xem phim online HD Vietsub (VieFlix / phimapi)",
       "locale": "vi",
       "type": "video"

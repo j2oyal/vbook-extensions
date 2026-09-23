@@ -3,7 +3,7 @@ function execute(url) {
     url = normalizeUrl(url);
     let response = fetch(url, {
         headers: {
-            'User-Agent': UserAgent.chrome()
+            'User-Agent': USER_AGENT
         }
     });
     if (!response.ok) return Response.error("HTTP " + response.status);
@@ -38,7 +38,7 @@ function execute(url) {
     doc.select('a[href*="/the-loai/"]').forEach(function(el) {
         tags.push({
             title: el.text().trim(),
-            input: el.attr("href"),
+            input: normalizeUrl(el.attr("href")),
             script: "gen.js"
         });
     });
