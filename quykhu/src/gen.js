@@ -1,31 +1,41 @@
 load('config.js');
 function execute(url, page) {
     page = page || "1";
-    let fetchUrl = normalizeUrl(url);
+    var fetchUrl = normalizeUrl(url);
     if (fetchUrl.indexOf('?') === -1) {
         fetchUrl += "?page=" + page;
     } else {
         fetchUrl += "&page=" + page;
     }
 
-    let response = fetch(fetchUrl, {
-        headers: {
-            'User-Agent': USER_AGENT
-        }
-    });
-    if (!response.ok) return Response.error("HTTP " + response.status);
-    let doc = response.html();
+    var ua = (typeof USER_AGENT !== 'undefined' && USER_AGENT) ? USER_AGENT : "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36";
+    var cookie = (typeof getCookie === 'function') ? getCookie() : "";
+    var headers = {
+        'User-Agent': ua,
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+    };
+    if (cookie) headers['Cookie'] = cookie;
 
-    let items = [];
+    var response = fetch(fetchUrl, { headers: headers });
+    if (!response.ok) return Response.error("HTTP " + response.status);
+
+    try {
+        var sc = response.header("set-cookie") || (response.headers && response.headers["set-cookie"]);
+        if (sc && typeof saveCookie === 'function') saveCookie(sc);
+    } catch (e) {}
+
+    var doc = response.html();
+
+    var items = [];
     doc.select('.qk-post-card, article, div.flex.gap-3').forEach(function (el) {
-        let titleEl = el.select('a.qk-post-card__title, h2 a, h3 a').first();
+        var titleEl = el.select('a.qk-post-card__title, h2 a, h3 a').first();
         if (titleEl) {
-            let name = titleEl.text().trim();
-            let link = titleEl.attr('href');
-            let coverEl = el.select('img').first();
-            let cover = coverEl ? (coverEl.attr('data-src') || coverEl.attr('src')) : "";
-            let descEl = el.select('.qk-post-card__excerpt, p, .desc').first();
-            let desc = descEl ? descEl.text().trim() : "";
+            var name = titleEl.text().trim();
+            var link = titleEl.attr('href');
+            var coverEl = el.select('img').first();
+            var cover = coverEl ? (coverEl.attr('data-src') || coverEl.attr('src')) : "";
+            var descEl = el.select('.qk-post-card__excerpt, p, .desc').first();
+            var desc = descEl ? descEl.text().trim() : "";
 
             if (name && link) {
                 items.push({
@@ -39,8 +49,8 @@ function execute(url, page) {
         }
     });
 
-    let next = "";
-    let nextBtn = doc.select('a[rel="next"], .pagination .next a').first();
+    var next = "";
+    var nextBtn = doc.select('a[rel="next"], .pagination .next a').first();
     if (nextBtn) {
         next = (parseInt(page, 10) + 1).toString();
     }

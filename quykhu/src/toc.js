@@ -2,41 +2,51 @@ load('config.js');
 
 function execute(url) {
     url = normalizeUrl(url);
-    let response = fetch(url, {
-        headers: {
-            'User-Agent': USER_AGENT
-        }
-    });
-    if (!response.ok) return Response.error("HTTP " + response.status);
-    let text = response.text();
-    let doc = response.html();
+    var ua = (typeof USER_AGENT !== 'undefined' && USER_AGENT) ? USER_AGENT : "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36";
+    var cookie = (typeof getCookie === 'function') ? getCookie() : "";
+    var headers = {
+        'User-Agent': ua,
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+    };
+    if (cookie) headers['Cookie'] = cookie;
 
-    let chapters = [];
-    let cleanBase = url.replace(/\/+$/, '');
+    var response = fetch(url, { headers: headers });
+    if (!response.ok) return Response.error("HTTP " + response.status);
+
+    try {
+        var sc = response.header("set-cookie") || (response.headers && response.headers["set-cookie"]);
+        if (sc && typeof saveCookie === 'function') saveCookie(sc);
+    } catch (e) {}
+
+    var text = response.text();
+    var doc = response.html();
+
+    var chapters = [];
+    var cleanBase = url.replace(/\/+$/, '');
 
     // 1. Try finding total chapters from section[data-chapter-list] or text
-    let section = doc.select('section[data-chapter-list]').first();
-    let total = 0;
+    var section = doc.select('section[data-chapter-list]').first();
+    var total = 0;
     if (section) {
-        let totalAttr = section.attr('data-total');
+        var totalAttr = section.attr('data-total');
         if (totalAttr) total = parseInt(totalAttr, 10);
     }
     if (!total || isNaN(total)) {
-        let numPagesMatch = text.match(/"numberOfPages":\s*(\d+)/);
+        var numPagesMatch = text.match(/"numberOfPages":\s*(\d+)/);
         if (numPagesMatch) {
             total = parseInt(numPagesMatch[1], 10);
         }
     }
 
     // 2. Map known chapter names from JSON-LD hasPart if available
-    let nameMap = {};
+    var nameMap = {};
     try {
-        let jsonLdMatch = text.match(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g);
+        var jsonLdMatch = text.match(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g);
         if (jsonLdMatch) {
             jsonLdMatch.forEach(function (script) {
-                let inner = script.replace(/<\/?script[^>]*>/g, '');
-                let data = JSON.parse(inner);
-                let list = [];
+                var inner = script.replace(/<\/?script[^>]*>/g, '');
+                var data = JSON.parse(inner);
+                var list = [];
                 if (data && data.hasPart) list = data.hasPart;
                 if (data && Array.isArray(data['@graph'])) {
                     data['@graph'].forEach(function (item) {
@@ -54,8 +64,8 @@ function execute(url) {
     }
 
     if (total > 0) {
-        for (let i = 1; i <= total; i++) {
-            let chapUrl = cleanBase + "/chuong-" + i;
+        for (var i = 1; i <= total; i++) {
+            var chapUrl = cleanBase + "/chuong-" + i;
             chapters.push({
                 name: nameMap[chapUrl] || ("Chương " + i),
                 url: chapUrl,
@@ -66,11 +76,11 @@ function execute(url) {
     }
 
     // 3. Fallback to links in static HTML
-    let links = doc.select('#chapter-list-page a, #chapter-list-content a, a[href*="/chuong-"]');
+    var links = doc.select('#chapter-list-page a, #chapter-list-content a, a[href*="/chuong-"]');
     if (!links.isEmpty()) {
-        let seen = {};
+        var seen = {};
         links.forEach(function (el) {
-            let href = el.attr('href');
+            var href = el.attr('href');
             if (href && href.indexOf('/chuong-') !== -1 && !seen[href]) {
                 seen[href] = true;
                 chapters.push({
@@ -87,4 +97,3 @@ function execute(url) {
 
     return Response.error("Không thể lấy danh sách chương!");
 }
-

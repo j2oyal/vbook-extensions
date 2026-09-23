@@ -1,6 +1,7 @@
 load('config.js');
 
 function cleanHtml(htm) {
+    if (!htm) return "";
     var text = htm
         .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
         .replace(/<a[^>]*>.*?<\/a>/gi, '')
@@ -32,58 +33,83 @@ function cleanHtml(htm) {
 
 function execute(url) {
     url = url.replace(/^(?:https?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^:\/\n?]+)/img, BASE_URL);
-    let headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+    var ua = (typeof USER_AGENT !== 'undefined' && USER_AGENT) ? USER_AGENT : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+    var cookie = (typeof getCookie === 'function') ? getCookie() : "";
+    var headers = {
+        'User-Agent': ua,
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
     };
-    let response = fetch(url, { headers: headers });
+    if (cookie) headers['Cookie'] = cookie;
+
+    var response = fetch(url, { headers: headers });
     if (!response.ok) {
         sleep(500);
         response = fetch(url, { headers: headers });
     }
     if (response.ok) {
-        let doc = response.html();
-        let genres = [];
+        try {
+            var sc = response.header("set-cookie") || (response.headers && response.headers["set-cookie"]);
+            if (sc && typeof saveCookie === 'function') saveCookie(sc);
+        } catch (e) {}
+
+        var doc = response.html();
+        var genres = [];
 
         // tác giả
-        let author = doc.select("a[itemprop=author]");
-        genres.push({
-            title: author.text(),
-            input: author.attr("href"),
-            script: "gen.js"
-        });
+        var authorEl = doc.select("a[itemprop=author]").first();
+        var authorName = authorEl ? authorEl.text().trim() : "";
+        var authorHref = authorEl ? authorEl.attr("href") : "";
+        if (authorName) {
+            genres.push({
+                title: authorName,
+                input: authorHref,
+                script: "gen.js"
+            });
+        }
 
         // thể loại
-        doc.select(".info a[itemprop=genre]").forEach(e => {
+        doc.select(".info a[itemprop=genre]").forEach(function(e) {
             genres.push({
-                title: e.text(),
+                title: e.text().trim(),
                 input: e.attr("href"),
                 script: "gen.js"
             });
         });
 
         // gợi ý cùng tác giả
-        let suggests = [];
-        suggests.push({
-            title: "Cùng tác giả",
-            input: author.attr('href'),
-            script: "gen.js"
-        });
+        var suggests = [];
+        if (authorHref) {
+            suggests.push({
+                title: "Cùng tác giả",
+                input: authorHref,
+                script: "gen.js"
+            });
+        }
 
         // mô tả, đã làm sạch HTML
-        let rawDesc = doc.select("div.desc-text").html();
-        let cleanedDesc = cleanHtml(rawDesc);
+        var rawDesc = doc.select("div.desc-text").html();
+        var cleanedDesc = cleanHtml(rawDesc);
+
+        var titleEl = doc.select("h3.title").first();
+        var title = titleEl ? titleEl.text().trim() : "";
+
+        var coverEl = doc.select("div.book img").first();
+        var cover = coverEl ? (coverEl.attr("data-src") || coverEl.attr("src")) : "";
+
+        var authorInfoEl = doc.select("div.info div a").first();
+        var authorText = authorInfoEl ? authorInfoEl.text().trim() : (authorName || "Đang cập nhật");
 
         return Response.success({
-            name: doc.select("h3.title").text(),
-            cover: doc.select("div.book img").attr("src"),
-            author: doc.select("div.info div a").first().text(),
+            name: title,
+            cover: cover,
+            author: authorText,
             description: cleanedDesc,
-            detail: "",
+            detail: "Tác giả: " + authorText,
             ongoing: doc.select("div.info").html().indexOf(">Đang ra<") > 0,
             genres: genres,
             suggests: suggests,
             host: BASE_URL
         });
     }
-    return null;
+    return Response.error("HTTP " + response.status + " - Vui lòng mở trình duyệt để xác thực hoặc thử lại!");
 }

@@ -1,5 +1,6 @@
 load('config.js');
 function cleanHtml(htm) {
+    if (!htm) return "";
     var text = htm
         .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
         .replace(/<a[^>]*>.*?<\/a>/gi, '')
@@ -26,13 +27,29 @@ function cleanHtml(htm) {
     return text;
 }
 
-
-
 function execute(url) {
     url = url.replace(/^(?:https?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^:\/\n?]+)/img, BASE_URL);
-    let response = fetch(url);
+    var ua = (typeof USER_AGENT !== 'undefined' && USER_AGENT) ? USER_AGENT : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+    var cookie = (typeof getCookie === 'function') ? getCookie() : "";
+    var headers = {
+        'User-Agent': ua,
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+    };
+    if (cookie) headers['Cookie'] = cookie;
+
+    var response = fetch(url, { headers: headers });
+    if (!response.ok) {
+        sleep(500);
+        response = fetch(url, { headers: headers });
+    }
+
     if (response.ok) {
-        let doc = response.html();
+        try {
+            var sc = response.header("set-cookie") || (response.headers && response.headers["set-cookie"]);
+            if (sc && typeof saveCookie === 'function') saveCookie(sc);
+        } catch (e) {}
+
+        var doc = response.html();
         // loại bỏ các phần tử rác
         doc.select("noscript").remove();
         doc.select("script").remove();
@@ -41,12 +58,12 @@ function execute(url) {
         doc.select("[style=font-size.0px;]").remove();
         doc.select("a").remove();
         // lấy nội dung chương
-        let rawTxt = doc.select("div.chapter-c").html();
+        var rawTxt = doc.select("div.chapter-c").html();
         // xóa phần chú thích "chương có ảnh"
         rawTxt = rawTxt.replace(/<em>.*?Chương này có nội dung ảnh.*?<\/em>/gi, '');
         // làm sạch HTML
-        let cleanedTxt = cleanHtml(rawTxt);
+        var cleanedTxt = cleanHtml(rawTxt);
         return Response.success(cleanedTxt);
     }
-    return null;
+    return Response.error("HTTP " + response.status + " - Vui lòng mở trình duyệt để xác thực hoặc thử lại!");
 }

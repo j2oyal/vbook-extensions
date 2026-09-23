@@ -1,4 +1,4 @@
-let BASE_URL = "https://quykhu.com";
+var BASE_URL = "https://quykhu.com";
 try {
     if (DOMAIN) {
         BASE_URL = DOMAIN;
@@ -14,4 +14,21 @@ function normalizeUrl(url) {
     return url.replace(/^(?:https?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^:\/\n?]+)/img, BASE_URL);
 }
 
-const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+var USER_AGENT = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36";
+
+function getCookie() {
+    try {
+        if (typeof localCookie !== "undefined") {
+            return localCookie.getCookie() || "";
+        }
+    } catch (e) {}
+    return "";
+}
+
+function saveCookie(cookieStr) {
+    try {
+        if (cookieStr && typeof localCookie !== "undefined") {
+            localCookie.setCookie(cookieStr);
+        }
+    } catch (e) {}
+}

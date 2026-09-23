@@ -48,37 +48,66 @@ function decryptContent(d, k) {
 
 function execute(url) {
     url = normalizeUrl(url);
-    let res = fetch(url, {
-        headers: {
-            'User-Agent': USER_AGENT
-        }
-    });
-    if (!res.ok) return Response.error("HTTP " + res.status);
-    let text = res.text();
-    let doc = res.html();
+    var ua = (typeof USER_AGENT !== 'undefined' && USER_AGENT) ? USER_AGENT : "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36";
+    
+    var cookie = "";
+    if (typeof getCookie === 'function') {
+        cookie = getCookie();
+    }
 
-    // 1. Check if chapter is encrypted via Ajax (like Chapter 2+)
-    let urlMatch = text.match(/contentUrl\s*=\s*"([^"]+)"/);
-    let tokenMatch = text.match(/contentToken\s*=\s*"([^"]+)"/);
-    let csrfMatch = text.match(/<meta[^>]*name="csrf-token"[^>]*content="([^"]+)"/);
+    var headers = {
+        'User-Agent': ua,
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+    };
+    if (cookie) {
+        headers['Cookie'] = cookie;
+    }
+
+    var res = fetch(url, { headers: headers });
+    if (!res.ok) return Response.error("HTTP " + res.status);
+
+    // Save any returned session cookie
+    try {
+        var sc = res.header("set-cookie") || (res.headers && res.headers["set-cookie"]);
+        if (sc && typeof saveCookie === 'function') {
+            saveCookie(sc);
+        }
+    } catch (e) {}
+
+    var text = res.text();
+    var doc = res.html();
+
+    // 1. Check if chapter content is encrypted via Ajax
+    var urlMatch = text.match(/contentUrl\s*=\s*"([^"]+)"/);
+    var tokenMatch = text.match(/contentToken\s*=\s*"([^"]+)"/);
+    var csrfMatch = text.match(/<meta[^>]*name="csrf-token"[^>]*content="([^"]+)"/);
 
     if (urlMatch && tokenMatch) {
-        let rawContentUrl = urlMatch[1].replace(/\\/g, '');
-        let fullContentUrl = BASE_URL + rawContentUrl;
-        let apiRes = fetch(fullContentUrl, {
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': csrfMatch ? csrfMatch[1] : '',
-                'X-Content-Token': tokenMatch[1],
-                'User-Agent': USER_AGENT,
-                'Referer': url
-            }
-        });
+        var rawContentUrl = urlMatch[1].replace(/\\/g, '');
+        var fullContentUrl = BASE_URL + rawContentUrl;
+        
+        var apiCookie = (typeof getCookie === 'function') ? getCookie() : "";
+        if (!apiCookie && cookie) {
+            apiCookie = cookie;
+        }
+
+        var apiHeaders = {
+            'Accept': 'application/json, text/plain, */*',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': csrfMatch ? csrfMatch[1] : '',
+            'X-Content-Token': tokenMatch[1],
+            'User-Agent': ua,
+            'Referer': url
+        };
+        if (apiCookie) {
+            apiHeaders['Cookie'] = apiCookie;
+        }
+
+        var apiRes = fetch(fullContentUrl, { headers: apiHeaders });
         if (apiRes.ok) {
-            let json = apiRes.json();
+            var json = apiRes.json();
             if (json && json.d && json.k) {
-                let decrypted = decryptContent(json.d, json.k);
+                var decrypted = decryptContent(json.d, json.k);
                 if (decrypted && decrypted.length > 20) {
                     return Response.success(decrypted);
                 }
@@ -86,16 +115,16 @@ function execute(url) {
         }
     }
 
-    // 2. Fallback to static HTML (for chapters rendered statically, like chapter 1)
-    let contentEl = doc.select("#content .chap").first();
+    // 2. Fallback to static HTML (for chapters rendered statically)
+    var contentEl = doc.select("#content .chap").first();
     if (!contentEl) {
         contentEl = doc.select("#content, .reading-content, article").first();
     }
 
     if (contentEl) {
         contentEl.select("script, style, svg, .tts-exclude, .animate-spin, .chapter-source-chrome, button").remove();
-        let content = contentEl.html().trim();
-        let cleanText = content.replace(/<[^>]+>/g, '').trim();
+        var content = contentEl.html().trim();
+        var cleanText = content.replace(/<[^>]+>/g, '').trim();
         if (cleanText.length > 20) {
             return Response.success(content);
         }

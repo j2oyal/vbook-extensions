@@ -8,10 +8,21 @@
       "name": "Quy Khư",
       "author": "vBook",
       "path": "https://raw.githubusercontent.com/j2oyal/vbook-extensions/master/quykhu/plugin.zip",
-      "version": 1,
+      "version": 3,
       "source": "https://quykhu.com",
       "icon": "https://raw.githubusercontent.com/j2oyal/vbook-extensions/master/quykhu/icon.png",
       "description": "Đọc truyện trên trang Quy Khư (quykhu.com)",
+      "type": "novel",
+      "locale": "vi_VN"
+    },
+    {
+      "name": "Truyện Full",
+      "author": "vBook",
+      "path": "https://raw.githubusercontent.com/j2oyal/vbook-extensions/master/truyenfull/plugin.zip",
+      "version": 15,
+      "source": "https://truyenfull.live",
+      "icon": "https://raw.githubusercontent.com/j2oyal/vbook-extensions/master/truyenfull/icon.png",
+      "description": "Đọc truyện trên trang Truyện Full",
       "type": "novel",
       "locale": "vi_VN"
     }
