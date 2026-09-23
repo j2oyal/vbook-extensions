@@ -1,0 +1,19 @@
+{
+  "metadata": {
+    "author": "j2oyal",
+    "description": "Kho tiện ích mở rộng vBook cá nhân"
+  },
+  "data": [
+    {
+      "name": "Quy Khư",
+      "author": "vBook",
+      "path": "https://raw.githubusercontent.com/j2oyal/vbook-extensions/master/quykhu/plugin.zip",
+      "version": 1,
+      "source": "https://quykhu.com",
+      "icon": "https://raw.githubusercontent.com/j2oyal/vbook-extensions/master/quykhu/icon.png",
+      "description": "Đọc truyện trên trang Quy Khư (quykhu.com)",
+      "type": "novel",
+      "locale": "vi_VN"
+    }
+  ]
+}

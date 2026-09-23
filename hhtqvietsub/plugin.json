@@ -2,9 +2,9 @@
   "metadata": {
     "name": "HHTQ Vietsub",
     "author": "vBook",
-    "version": 9,
-    "source": "https://hhtq.hair",
-    "regexp": "(www\\.)?hhtq\\.(hair|today)/.*",
+    "version": 10,
+    "source": "https://hhtqvietsub.art",
+    "regexp": "(www\\.)?hhtq(vietsub)?\\.(art|hair|today)/.*",
     "description": "Xem phim hoạt hình Trung Quốc trên HHTQ Vietsub",
     "locale": "vi_VN",
     "type": "video",

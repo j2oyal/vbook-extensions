@@ -5,6 +5,17 @@
   },
   "data": [
     {
+      "name": "Quy Khư",
+      "author": "vBook",
+      "path": "https://raw.githubusercontent.com/j2oyal/vbook-extensions/master/quykhu/plugin.zip",
+      "version": 1,
+      "source": "https://quykhu.com",
+      "icon": "https://raw.githubusercontent.com/j2oyal/vbook-extensions/master/quykhu/icon.png",
+      "description": "Đọc truyện trên trang Quy Khư (quykhu.com)",
+      "type": "novel",
+      "locale": "vi_VN"
+    },
+    {
       "name": "Bạch Ngọc Sách",
       "author": "vBook",
       "path": "https://raw.githubusercontent.com/Darkrai9x/vbook-extensions/master/bachngocsach/plugin.zip",
@@ -57,6 +68,17 @@
       "icon": "https://raw.githubusercontent.com/Darkrai9x/vbook-extensions/master/wikidich-app/icon.png",
       "description": "Đọc truyện trên trang app Wiki Dịch",
       "type": "novel",
+      "locale": "vi_VN"
+    },
+    {
+      "name": "Net Truyện",
+      "author": "vBook",
+      "path": "https://raw.githubusercontent.com/Darkrai9x/vbook-extensions/master/nettruyen/plugin.zip",
+      "version": 33,
+      "source": "https://nettruyenar.com",
+      "icon": "https://raw.githubusercontent.com/Darkrai9x/vbook-extensions/master/nettruyen/icon.png",
+      "description": "Đọc truyện trên trang Net Truyện",
+      "type": "comic",
       "locale": "vi_VN"
     },
     {

@@ -1,0 +1,27 @@
+{
+  "metadata": {
+    "name": "Quy Khư",
+    "author": "vBook",
+    "version": 1,
+    "source": "https://quykhu.com",
+    "regexp": "(?:https?://)?(?:www\\.)?quykhu\\.com/.*",
+    "description": "Đọc truyện trên trang Quy Khư (quykhu.com)",
+    "locale": "vi_VN",
+    "type": "novel"
+  },
+  "script": {
+    "home": "home.js",
+    "detail": "detail.js",
+    "toc": "toc.js",
+    "chap": "chap.js",
+    "search": "search.js"
+  },
+  "config": {
+    "DOMAIN": {
+      "title": "Domain",
+      "default": "https://quykhu.com",
+      "mode": "input",
+      "format": "text"
+    }
+  }
+}
